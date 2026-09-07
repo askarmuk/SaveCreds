@@ -20,14 +20,14 @@ $script:logsDirectory = Join-Path -Path $script:scriptDirectory -ChildPath 'logs
 $script:startTime = Get-Date
 $script:logPath = $null
 $script:currentFolder = $null
-$script:credentialsList = $null
-$script:logTextBox = $null
-$script:domainValue = $null
-$script:loginValue = $null
-$script:fileValue = $null
-$script:copyPasswordButton = $null
-$script:changePasswordButton = $null
-$script:deleteFileButton = $null
+$script:gui_credentialsList = $null
+$script:gui_logTextBox = $null
+$script:gui_domainValue = $null
+$script:gui_loginValue = $null
+$script:gui_fileValue = $null
+$script:gui_copyPasswordButton = $null
+$script:gui_changePasswordButton = $null
+$script:gui_deleteFileButton = $null
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -178,20 +178,20 @@ function Write-Log {
         # Журнал не должен останавливать работу интерфейса.
     }
 
-    if ($null -ne $script:logTextBox -and -not $script:logTextBox.IsDisposed) {
-        $script:logTextBox.AppendText($line + [Environment]::NewLine)
-        $script:logTextBox.SelectionStart = $script:logTextBox.TextLength
-        $script:logTextBox.ScrollToCaret()
+    if ($null -ne $script:gui_logTextBox -and -not $script:gui_logTextBox.IsDisposed) {
+        $script:gui_logTextBox.AppendText($line + [Environment]::NewLine)
+        $script:gui_logTextBox.SelectionStart = $script:gui_logTextBox.TextLength
+        $script:gui_logTextBox.ScrollToCaret()
     }
 }
 
 function Clear-CredentialDetails {
-    $script:domainValue.Text = '-'
-    $script:loginValue.Text = '-'
-    $script:fileValue.Text = '-'
-    $script:copyPasswordButton.Enabled = $false
-    $script:changePasswordButton.Enabled = $false
-    $script:deleteFileButton.Enabled = $false
+    $script:gui_domainValue.Text = '-'
+    $script:gui_loginValue.Text = '-'
+    $script:gui_fileValue.Text = '-'
+    $script:gui_copyPasswordButton.Enabled = $false
+    $script:gui_changePasswordButton.Enabled = $false
+    $script:gui_deleteFileButton.Enabled = $false
 }
 
 function Show-CredentialDetails {
@@ -199,121 +199,121 @@ function Show-CredentialDetails {
 
     if (-not $ItemData.Readable) {
         Clear-CredentialDetails
-        $script:domainValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Domain)) { 'Не найден' } else { $ItemData.Domain }
-        $script:loginValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Login)) { 'Не найден' } else { $ItemData.Login }
-        $script:fileValue.Text = "$($ItemData.Name) (недоступен для чтения)"
+        $script:gui_domainValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Domain)) { 'Не найден' } else { $ItemData.Domain }
+        $script:gui_loginValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Login)) { 'Не найден' } else { $ItemData.Login }
+        $script:gui_fileValue.Text = "$($ItemData.Name) (недоступен для чтения)"
         return
     }
 
-    $script:domainValue.Text = $ItemData.Domain
-    $script:loginValue.Text = $ItemData.Login
-    $script:fileValue.Text = $ItemData.Name
-    $script:copyPasswordButton.Enabled = $true
-    $script:changePasswordButton.Enabled = $true
+    $script:gui_domainValue.Text = $ItemData.Domain
+    $script:gui_loginValue.Text = $ItemData.Login
+    $script:gui_fileValue.Text = $ItemData.Name
+    $script:gui_copyPasswordButton.Enabled = $true
+    $script:gui_changePasswordButton.Enabled = $true
 }
 
 function Get-ConfirmedNewPassword {
     param([Parameter(Mandatory = $true)][string]$FileName)
 
-    $dialog = New-Object System.Windows.Forms.Form
-    $dialog.Text = 'Изменение пароля'
-    $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
-    $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
-    $dialog.ClientSize = New-Object Drawing.Size(420, 180)
-    $dialog.MinimizeBox = $false
-    $dialog.MaximizeBox = $false
-    $dialog.ShowInTaskbar = $false
-    $dialog.Font = New-Object Drawing.Font('Segoe UI', 9)
+    $gui_passwordDialog = New-Object System.Windows.Forms.Form
+    $gui_passwordDialog.Text = 'Изменение пароля'
+    $gui_passwordDialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+    $gui_passwordDialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $gui_passwordDialog.ClientSize = New-Object Drawing.Size(420, 180)
+    $gui_passwordDialog.MinimizeBox = $false
+    $gui_passwordDialog.MaximizeBox = $false
+    $gui_passwordDialog.ShowInTaskbar = $false
+    $gui_passwordDialog.Font = New-Object Drawing.Font('Segoe UI', 9)
 
-    $description = New-Object System.Windows.Forms.Label
-    $description.Text = "Укажите новый пароль для файла '$FileName'.`r`nДомен и логин изменены не будут."
-    $description.AutoSize = $true
-    $description.Location = New-Object Drawing.Point(12, 12)
+    $gui_passwordDescription = New-Object System.Windows.Forms.Label
+    $gui_passwordDescription.Text = "Укажите новый пароль для файла '$FileName'.`r`nДомен и логин изменены не будут."
+    $gui_passwordDescription.AutoSize = $true
+    $gui_passwordDescription.Location = New-Object Drawing.Point(12, 12)
 
-    $newPasswordLabel = New-Object System.Windows.Forms.Label
-    $newPasswordLabel.Text = 'Новый пароль:'
-    $newPasswordLabel.AutoSize = $true
-    $newPasswordLabel.Location = New-Object Drawing.Point(12, 62)
-    $newPasswordTextBox = New-Object System.Windows.Forms.TextBox
-    $newPasswordTextBox.Location = New-Object Drawing.Point(145, 58)
-    $newPasswordTextBox.Size = New-Object Drawing.Size(260, 23)
-    $newPasswordTextBox.UseSystemPasswordChar = $true
+    $gui_newPasswordLabel = New-Object System.Windows.Forms.Label
+    $gui_newPasswordLabel.Text = 'Новый пароль:'
+    $gui_newPasswordLabel.AutoSize = $true
+    $gui_newPasswordLabel.Location = New-Object Drawing.Point(12, 62)
+    $gui_newPasswordTextBox = New-Object System.Windows.Forms.TextBox
+    $gui_newPasswordTextBox.Location = New-Object Drawing.Point(145, 58)
+    $gui_newPasswordTextBox.Size = New-Object Drawing.Size(260, 23)
+    $gui_newPasswordTextBox.UseSystemPasswordChar = $true
 
-    $confirmationLabel = New-Object System.Windows.Forms.Label
-    $confirmationLabel.Text = 'Подтверждение:'
-    $confirmationLabel.AutoSize = $true
-    $confirmationLabel.Location = New-Object Drawing.Point(12, 94)
-    $confirmationTextBox = New-Object System.Windows.Forms.TextBox
-    $confirmationTextBox.Location = New-Object Drawing.Point(145, 90)
-    $confirmationTextBox.Size = New-Object Drawing.Size(260, 23)
-    $confirmationTextBox.UseSystemPasswordChar = $true
+    $gui_confirmationLabel = New-Object System.Windows.Forms.Label
+    $gui_confirmationLabel.Text = 'Подтверждение:'
+    $gui_confirmationLabel.AutoSize = $true
+    $gui_confirmationLabel.Location = New-Object Drawing.Point(12, 94)
+    $gui_confirmationTextBox = New-Object System.Windows.Forms.TextBox
+    $gui_confirmationTextBox.Location = New-Object Drawing.Point(145, 90)
+    $gui_confirmationTextBox.Size = New-Object Drawing.Size(260, 23)
+    $gui_confirmationTextBox.UseSystemPasswordChar = $true
 
-    $saveButton = New-Object System.Windows.Forms.Button
-    $saveButton.Text = 'Сохранить пароль'
-    $saveButton.Size = New-Object Drawing.Size(130, 28)
-    $saveButton.Location = New-Object Drawing.Point(184, 135)
-    $saveButton.DialogResult = [System.Windows.Forms.DialogResult]::None
-    $cancelButton = New-Object System.Windows.Forms.Button
-    $cancelButton.Text = 'Отмена'
-    $cancelButton.Size = New-Object Drawing.Size(90, 28)
-    $cancelButton.Location = New-Object Drawing.Point(315, 135)
-    $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $gui_savePasswordButton = New-Object System.Windows.Forms.Button
+    $gui_savePasswordButton.Text = 'Сохранить пароль'
+    $gui_savePasswordButton.Size = New-Object Drawing.Size(130, 28)
+    $gui_savePasswordButton.Location = New-Object Drawing.Point(184, 135)
+    $gui_savePasswordButton.DialogResult = [System.Windows.Forms.DialogResult]::None
+    $gui_cancelPasswordButton = New-Object System.Windows.Forms.Button
+    $gui_cancelPasswordButton.Text = 'Отмена'
+    $gui_cancelPasswordButton.Size = New-Object Drawing.Size(90, 28)
+    $gui_cancelPasswordButton.Location = New-Object Drawing.Point(315, 135)
+    $gui_cancelPasswordButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
-    [void]$dialog.Controls.Add($description)
-    [void]$dialog.Controls.Add($newPasswordLabel)
-    [void]$dialog.Controls.Add($newPasswordTextBox)
-    [void]$dialog.Controls.Add($confirmationLabel)
-    [void]$dialog.Controls.Add($confirmationTextBox)
-    [void]$dialog.Controls.Add($saveButton)
-    [void]$dialog.Controls.Add($cancelButton)
-    $dialog.AcceptButton = $saveButton
-    $dialog.CancelButton = $cancelButton
+    [void]$gui_passwordDialog.Controls.Add($gui_passwordDescription)
+    [void]$gui_passwordDialog.Controls.Add($gui_newPasswordLabel)
+    [void]$gui_passwordDialog.Controls.Add($gui_newPasswordTextBox)
+    [void]$gui_passwordDialog.Controls.Add($gui_confirmationLabel)
+    [void]$gui_passwordDialog.Controls.Add($gui_confirmationTextBox)
+    [void]$gui_passwordDialog.Controls.Add($gui_savePasswordButton)
+    [void]$gui_passwordDialog.Controls.Add($gui_cancelPasswordButton)
+    $gui_passwordDialog.AcceptButton = $gui_savePasswordButton
+    $gui_passwordDialog.CancelButton = $gui_cancelPasswordButton
 
-    $saveButton.Add_Click({
-        if ([String]::IsNullOrEmpty($newPasswordTextBox.Text)) {
+    $gui_savePasswordButton.Add_Click({
+        if ([String]::IsNullOrEmpty($gui_newPasswordTextBox.Text)) {
             [System.Windows.Forms.MessageBox]::Show(
                 'Введите новый пароль.',
                 'Пароль не указан',
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Warning
             ) | Out-Null
-            $newPasswordTextBox.Focus()
+            $gui_newPasswordTextBox.Focus()
             return
         }
-        if ($newPasswordTextBox.Text -cne $confirmationTextBox.Text) {
+        if ($gui_newPasswordTextBox.Text -cne $gui_confirmationTextBox.Text) {
             [System.Windows.Forms.MessageBox]::Show(
                 'Пароль и его подтверждение не совпадают.',
                 'Пароли не совпадают',
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Warning
             ) | Out-Null
-            $confirmationTextBox.Clear()
-            $confirmationTextBox.Focus()
+            $gui_confirmationTextBox.Clear()
+            $gui_confirmationTextBox.Focus()
             return
         }
 
-        $dialog.Tag = ConvertTo-SecureString -String $newPasswordTextBox.Text -AsPlainText -Force
-        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
-        $dialog.Close()
+        $gui_passwordDialog.Tag = ConvertTo-SecureString -String $gui_newPasswordTextBox.Text -AsPlainText -Force
+        $gui_passwordDialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
+        $gui_passwordDialog.Close()
     })
 
     try {
-        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            return $dialog.Tag
+        if ($gui_passwordDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            return $gui_passwordDialog.Tag
         }
         return $null
     }
     finally {
-        $newPasswordTextBox.Clear()
-        $confirmationTextBox.Clear()
-        $dialog.Dispose()
+        $gui_newPasswordTextBox.Clear()
+        $gui_confirmationTextBox.Clear()
+        $gui_passwordDialog.Dispose()
     }
 }
 
 function Load-CredentialFiles {
-    $script:credentialsList.BeginUpdate()
+    $script:gui_credentialsList.BeginUpdate()
     try {
-        $script:credentialsList.Items.Clear()
+        $script:gui_credentialsList.Items.Clear()
         Clear-CredentialDetails
 
         $files = Get-ChildItem -LiteralPath $script:currentFolder -Filter '*.xml' -File -ErrorAction Stop |
@@ -341,9 +341,9 @@ function Load-CredentialFiles {
                 }
             }
 
-            $item = New-Object System.Windows.Forms.ListViewItem($file.Name)
-            [void]$item.SubItems.Add($(if ($readable) { 'Доступен' } else { 'Недоступен' }))
-            $item.Tag = [pscustomobject]@{
+            $gui_item = New-Object System.Windows.Forms.ListViewItem($file.Name)
+            [void]$gui_item.SubItems.Add($(if ($readable) { 'Доступен' } else { 'Недоступен' }))
+            $gui_item.Tag = [pscustomobject]@{
                 Name       = $file.Name
                 Path       = $file.FullName
                 Readable   = $readable
@@ -353,10 +353,10 @@ function Load-CredentialFiles {
                 Error      = if ($readable) { '' } else { $readError }
             }
             if (-not $readable) {
-                $item.ForeColor = [Drawing.Color]::Firebrick
-                $item.ToolTipText = "Недоступен для чтения: $readError"
+                $gui_item.ForeColor = [Drawing.Color]::Firebrick
+                $gui_item.ToolTipText = "Недоступен для чтения: $readError"
             }
-            [void]$script:credentialsList.Items.Add($item)
+            [void]$script:gui_credentialsList.Items.Add($gui_item)
         }
     }
     catch {
@@ -369,7 +369,7 @@ function Load-CredentialFiles {
         ) | Out-Null
     }
     finally {
-        $script:credentialsList.EndUpdate()
+        $script:gui_credentialsList.EndUpdate()
     }
 }
 
@@ -411,38 +411,38 @@ if ($settings.ContainsKey('CREDENTIALS_FOLDER') -and
 $script:currentFolder = $defaultFolder
 Save-Settings
 
-$form = New-Object System.Windows.Forms.Form
-$form.Text = 'Сохранение учетных данных'
-$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$form.Size = New-Object Drawing.Size(940, 700)
-$form.MinimumSize = New-Object Drawing.Size(780, 580)
-$form.Font = New-Object Drawing.Font('Segoe UI', 9)
+$gui_form = New-Object System.Windows.Forms.Form
+$gui_form.Text = 'Сохранение учетных данных'
+$gui_form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$gui_form.Size = New-Object Drawing.Size(940, 700)
+$gui_form.MinimumSize = New-Object Drawing.Size(780, 580)
+$gui_form.Font = New-Object Drawing.Font('Segoe UI', 9)
 
-$rootLayout = New-Object System.Windows.Forms.TableLayoutPanel
-$rootLayout.Dock = [System.Windows.Forms.DockStyle]::Fill
-$rootLayout.Padding = New-Object System.Windows.Forms.Padding(10)
-$rootLayout.ColumnCount = 1
-$rootLayout.RowCount = 6
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 55)))
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 45)))
-$form.Controls.Add($rootLayout)
+$gui_rootLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$gui_rootLayout.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gui_rootLayout.Padding = New-Object System.Windows.Forms.Padding(10)
+$gui_rootLayout.ColumnCount = 1
+$gui_rootLayout.RowCount = 6
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 55)))
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_rootLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 45)))
+$gui_form.Controls.Add($gui_rootLayout)
 
-$infoGroup = New-Object System.Windows.Forms.GroupBox
-$infoGroup.Text = 'Сведения о текущем сеансе'
-$infoGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
-$infoGroup.AutoSize = $true
-$infoGroup.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
-$infoLayout = New-Object System.Windows.Forms.TableLayoutPanel
-$infoLayout.Dock = [System.Windows.Forms.DockStyle]::Top
-$infoLayout.AutoSize = $true
-$infoLayout.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
-$infoLayout.ColumnCount = 2
-[void]$infoLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$infoLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$gui_infoGroup = New-Object System.Windows.Forms.GroupBox
+$gui_infoGroup.Text = 'Сведения о текущем сеансе'
+$gui_infoGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gui_infoGroup.AutoSize = $true
+$gui_infoGroup.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
+$gui_infoLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$gui_infoLayout.Dock = [System.Windows.Forms.DockStyle]::Top
+$gui_infoLayout.AutoSize = $true
+$gui_infoLayout.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
+$gui_infoLayout.ColumnCount = 2
+[void]$gui_infoLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_infoLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $isAdministratorText = if (Test-IsAdministrator) { 'Да' } else { 'Нет' }
@@ -452,140 +452,140 @@ $infoRows = @(
     @('Запуск от имени администратора:', $isAdministratorText)
 )
 foreach ($infoRow in $infoRows) {
-    $caption = New-Object System.Windows.Forms.Label
-    $caption.Text = $infoRow[0]
-    $caption.AutoSize = $true
-    $caption.Margin = New-Object System.Windows.Forms.Padding(8, 5, 6, 5)
-    $value = New-Object System.Windows.Forms.TextBox
-    $value.Text = $infoRow[1]
-    $value.ReadOnly = $true
-    $value.Dock = [System.Windows.Forms.DockStyle]::Fill
-    $value.MinimumSize = New-Object Drawing.Size(0, 23)
-    $value.Margin = New-Object System.Windows.Forms.Padding(0, 5, 8, 5)
-    $infoLayout.Controls.Add($caption)
-    $infoLayout.Controls.Add($value)
+    $gui_caption = New-Object System.Windows.Forms.Label
+    $gui_caption.Text = $infoRow[0]
+    $gui_caption.AutoSize = $true
+    $gui_caption.Margin = New-Object System.Windows.Forms.Padding(8, 5, 6, 5)
+    $gui_value = New-Object System.Windows.Forms.TextBox
+    $gui_value.Text = $infoRow[1]
+    $gui_value.ReadOnly = $true
+    $gui_value.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $gui_value.MinimumSize = New-Object Drawing.Size(0, 23)
+    $gui_value.Margin = New-Object System.Windows.Forms.Padding(0, 5, 8, 5)
+    $gui_infoLayout.Controls.Add($gui_caption)
+    $gui_infoLayout.Controls.Add($gui_value)
 }
-$infoGroup.Controls.Add($infoLayout)
-$rootLayout.Controls.Add($infoGroup, 0, 0)
+$gui_infoGroup.Controls.Add($gui_infoLayout)
+$gui_rootLayout.Controls.Add($gui_infoGroup, 0, 0)
 
-$folderPanel = New-Object System.Windows.Forms.TableLayoutPanel
-$folderPanel.Dock = [System.Windows.Forms.DockStyle]::Top
-$folderPanel.AutoSize = $true
-$folderPanel.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 0)
-$folderPanel.ColumnCount = 4
-[void]$folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
-[void]$folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$folderLabel = New-Object System.Windows.Forms.Label
-$folderLabel.Text = 'Папка с учетными данными:'
-$folderLabel.AutoSize = $true
-$folderLabel.Anchor = [System.Windows.Forms.AnchorStyles]::Left
-$folderPathTextBox = New-Object System.Windows.Forms.TextBox
-$folderPathTextBox.Dock = [System.Windows.Forms.DockStyle]::Fill
-$folderPathTextBox.Text = $script:currentFolder
-$applyFolderButton = New-Object System.Windows.Forms.Button
-$applyFolderButton.Text = 'Применить'
-$applyFolderButton.AutoSize = $true
-$chooseFolderButton = New-Object System.Windows.Forms.Button
-$chooseFolderButton.Text = 'Выбрать папку...'
-$chooseFolderButton.AutoSize = $true
-$folderPanel.Controls.Add($folderLabel, 0, 0)
-$folderPanel.Controls.Add($folderPathTextBox, 1, 0)
-$folderPanel.Controls.Add($applyFolderButton, 2, 0)
-$folderPanel.Controls.Add($chooseFolderButton, 3, 0)
-$rootLayout.Controls.Add($folderPanel, 0, 1)
+$gui_folderPanel = New-Object System.Windows.Forms.TableLayoutPanel
+$gui_folderPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+$gui_folderPanel.AutoSize = $true
+$gui_folderPanel.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 0)
+$gui_folderPanel.ColumnCount = 4
+[void]$gui_folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+[void]$gui_folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_folderPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$gui_folderLabel = New-Object System.Windows.Forms.Label
+$gui_folderLabel.Text = 'Папка с учетными данными:'
+$gui_folderLabel.AutoSize = $true
+$gui_folderLabel.Anchor = [System.Windows.Forms.AnchorStyles]::Left
+$gui_folderPathTextBox = New-Object System.Windows.Forms.TextBox
+$gui_folderPathTextBox.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gui_folderPathTextBox.Text = $script:currentFolder
+$gui_applyFolderButton = New-Object System.Windows.Forms.Button
+$gui_applyFolderButton.Text = 'Применить'
+$gui_applyFolderButton.AutoSize = $true
+$gui_chooseFolderButton = New-Object System.Windows.Forms.Button
+$gui_chooseFolderButton.Text = 'Выбрать папку...'
+$gui_chooseFolderButton.AutoSize = $true
+$gui_folderPanel.Controls.Add($gui_folderLabel, 0, 0)
+$gui_folderPanel.Controls.Add($gui_folderPathTextBox, 1, 0)
+$gui_folderPanel.Controls.Add($gui_applyFolderButton, 2, 0)
+$gui_folderPanel.Controls.Add($gui_chooseFolderButton, 3, 0)
+$gui_rootLayout.Controls.Add($gui_folderPanel, 0, 1)
 
-$buttonsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-$buttonsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
-$buttonsPanel.AutoSize = $true
-$buttonsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
-$createCredentialButton = New-Object System.Windows.Forms.Button
-$createCredentialButton.Text = 'Создать файл с учетными данными'
-$createCredentialButton.AutoSize = $true
-$script:copyPasswordButton = New-Object System.Windows.Forms.Button
-$script:copyPasswordButton.Text = 'Скопировать пароль'
-$script:copyPasswordButton.AutoSize = $true
-$script:copyPasswordButton.Enabled = $false
-$script:changePasswordButton = New-Object System.Windows.Forms.Button
-$script:changePasswordButton.Text = 'Изменить пароль'
-$script:changePasswordButton.AutoSize = $true
-$script:changePasswordButton.Enabled = $false
-$script:deleteFileButton = New-Object System.Windows.Forms.Button
-$script:deleteFileButton.Text = 'Удалить выбранный файл'
-$script:deleteFileButton.AutoSize = $true
-$script:deleteFileButton.Enabled = $false
-$buttonsPanel.Controls.Add($createCredentialButton)
-$buttonsPanel.Controls.Add($script:copyPasswordButton)
-$buttonsPanel.Controls.Add($script:changePasswordButton)
-$buttonsPanel.Controls.Add($script:deleteFileButton)
-$rootLayout.Controls.Add($buttonsPanel, 0, 2)
+$gui_buttonsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$gui_buttonsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+$gui_buttonsPanel.AutoSize = $true
+$gui_buttonsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
+$gui_createCredentialButton = New-Object System.Windows.Forms.Button
+$gui_createCredentialButton.Text = 'Создать файл с учетными данными'
+$gui_createCredentialButton.AutoSize = $true
+$script:gui_copyPasswordButton = New-Object System.Windows.Forms.Button
+$script:gui_copyPasswordButton.Text = 'Скопировать пароль'
+$script:gui_copyPasswordButton.AutoSize = $true
+$script:gui_copyPasswordButton.Enabled = $false
+$script:gui_changePasswordButton = New-Object System.Windows.Forms.Button
+$script:gui_changePasswordButton.Text = 'Изменить пароль'
+$script:gui_changePasswordButton.AutoSize = $true
+$script:gui_changePasswordButton.Enabled = $false
+$script:gui_deleteFileButton = New-Object System.Windows.Forms.Button
+$script:gui_deleteFileButton.Text = 'Удалить выбранный файл'
+$script:gui_deleteFileButton.AutoSize = $true
+$script:gui_deleteFileButton.Enabled = $false
+$gui_buttonsPanel.Controls.Add($gui_createCredentialButton)
+$gui_buttonsPanel.Controls.Add($script:gui_copyPasswordButton)
+$gui_buttonsPanel.Controls.Add($script:gui_changePasswordButton)
+$gui_buttonsPanel.Controls.Add($script:gui_deleteFileButton)
+$gui_rootLayout.Controls.Add($gui_buttonsPanel, 0, 2)
 
-$filesGroup = New-Object System.Windows.Forms.GroupBox
-$filesGroup.Text = 'Файлы XML'
-$filesGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
-$script:credentialsList = New-Object System.Windows.Forms.ListView
-$script:credentialsList.Dock = [System.Windows.Forms.DockStyle]::Fill
-$script:credentialsList.View = [System.Windows.Forms.View]::Details
-$script:credentialsList.FullRowSelect = $true
-$script:credentialsList.HideSelection = $false
-$script:credentialsList.MultiSelect = $false
-$script:credentialsList.ShowItemToolTips = $true
-[void]$script:credentialsList.Columns.Add('Имя файла', 590)
-[void]$script:credentialsList.Columns.Add('Состояние', 150)
-$filesGroup.Controls.Add($script:credentialsList)
-$rootLayout.Controls.Add($filesGroup, 0, 3)
+$gui_filesGroup = New-Object System.Windows.Forms.GroupBox
+$gui_filesGroup.Text = 'Файлы XML'
+$gui_filesGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$script:gui_credentialsList = New-Object System.Windows.Forms.ListView
+$script:gui_credentialsList.Dock = [System.Windows.Forms.DockStyle]::Fill
+$script:gui_credentialsList.View = [System.Windows.Forms.View]::Details
+$script:gui_credentialsList.FullRowSelect = $true
+$script:gui_credentialsList.HideSelection = $false
+$script:gui_credentialsList.MultiSelect = $false
+$script:gui_credentialsList.ShowItemToolTips = $true
+[void]$script:gui_credentialsList.Columns.Add('Имя файла', 590)
+[void]$script:gui_credentialsList.Columns.Add('Состояние', 150)
+$gui_filesGroup.Controls.Add($script:gui_credentialsList)
+$gui_rootLayout.Controls.Add($gui_filesGroup, 0, 3)
 
-$detailsGroup = New-Object System.Windows.Forms.GroupBox
-$detailsGroup.Text = 'Выбранные учетные данные (пароль не отображается)'
-$detailsGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
-$detailsGroup.AutoSize = $true
-$detailsGroup.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
-$detailsLayout = New-Object System.Windows.Forms.TableLayoutPanel
-$detailsLayout.Dock = [System.Windows.Forms.DockStyle]::Top
-$detailsLayout.AutoSize = $true
-$detailsLayout.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
-$detailsLayout.ColumnCount = 2
-[void]$detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
-[void]$detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$gui_detailsGroup = New-Object System.Windows.Forms.GroupBox
+$gui_detailsGroup.Text = 'Выбранные учетные данные (пароль не отображается)'
+$gui_detailsGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gui_detailsGroup.AutoSize = $true
+$gui_detailsGroup.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
+$gui_detailsLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$gui_detailsLayout.Dock = [System.Windows.Forms.DockStyle]::Top
+$gui_detailsLayout.AutoSize = $true
+$gui_detailsLayout.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
+$gui_detailsLayout.ColumnCount = 2
+[void]$gui_detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+[void]$gui_detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 foreach ($property in @(
     @{ Caption = 'Домен:'; Variable = 'domainValue' },
     @{ Caption = 'Логин:'; Variable = 'loginValue' },
     @{ Caption = 'Файл:'; Variable = 'fileValue' }
 )) {
-    $caption = New-Object System.Windows.Forms.Label
-    $caption.Text = $property.Caption
-    $caption.AutoSize = $true
-    $caption.Margin = New-Object System.Windows.Forms.Padding(8, 4, 6, 4)
-    $value = New-Object System.Windows.Forms.TextBox
-    $value.Text = '-'
-    $value.ReadOnly = $true
-    $value.Dock = [System.Windows.Forms.DockStyle]::Fill
-    $value.MinimumSize = New-Object Drawing.Size(0, 23)
-    $value.Margin = New-Object System.Windows.Forms.Padding(0, 4, 8, 4)
+    $gui_caption = New-Object System.Windows.Forms.Label
+    $gui_caption.Text = $property.Caption
+    $gui_caption.AutoSize = $true
+    $gui_caption.Margin = New-Object System.Windows.Forms.Padding(8, 4, 6, 4)
+    $gui_value = New-Object System.Windows.Forms.TextBox
+    $gui_value.Text = '-'
+    $gui_value.ReadOnly = $true
+    $gui_value.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $gui_value.MinimumSize = New-Object Drawing.Size(0, 23)
+    $gui_value.Margin = New-Object System.Windows.Forms.Padding(0, 4, 8, 4)
     switch ($property.Variable) {
-        'domainValue' { $script:domainValue = $value }
-        'loginValue'  { $script:loginValue = $value }
-        'fileValue'   { $script:fileValue = $value }
+        'domainValue' { $script:gui_domainValue = $gui_value }
+        'loginValue'  { $script:gui_loginValue = $gui_value }
+        'fileValue'   { $script:gui_fileValue = $gui_value }
     }
-    $detailsLayout.Controls.Add($caption)
-    $detailsLayout.Controls.Add($value)
+    $gui_detailsLayout.Controls.Add($gui_caption)
+    $gui_detailsLayout.Controls.Add($gui_value)
 }
-$detailsGroup.Controls.Add($detailsLayout)
-$rootLayout.Controls.Add($detailsGroup, 0, 4)
+$gui_detailsGroup.Controls.Add($gui_detailsLayout)
+$gui_rootLayout.Controls.Add($gui_detailsGroup, 0, 4)
 
-$logGroup = New-Object System.Windows.Forms.GroupBox
-$logGroup.Text = 'Журнал действий'
-$logGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
-$script:logTextBox = New-Object System.Windows.Forms.TextBox
-$script:logTextBox.Dock = [System.Windows.Forms.DockStyle]::Fill
-$script:logTextBox.Multiline = $true
-$script:logTextBox.ReadOnly = $true
-$script:logTextBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$script:logTextBox.Font = New-Object Drawing.Font('Consolas', 8)
-$script:logTextBox.Text = $startMessage + [Environment]::NewLine
-$logGroup.Controls.Add($script:logTextBox)
-$rootLayout.Controls.Add($logGroup, 0, 5)
+$gui_logGroup = New-Object System.Windows.Forms.GroupBox
+$gui_logGroup.Text = 'Журнал действий'
+$gui_logGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$script:gui_logTextBox = New-Object System.Windows.Forms.TextBox
+$script:gui_logTextBox.Dock = [System.Windows.Forms.DockStyle]::Fill
+$script:gui_logTextBox.Multiline = $true
+$script:gui_logTextBox.ReadOnly = $true
+$script:gui_logTextBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
+$script:gui_logTextBox.Font = New-Object Drawing.Font('Consolas', 8)
+$script:gui_logTextBox.Text = $startMessage + [Environment]::NewLine
+$gui_logGroup.Controls.Add($script:gui_logTextBox)
+$gui_rootLayout.Controls.Add($gui_logGroup, 0, 5)
 
 function Apply-CredentialsFolder {
     param([Parameter(Mandatory = $true)][string]$FolderPath)
@@ -613,7 +613,7 @@ function Apply-CredentialsFolder {
 
     try {
         $script:currentFolder = (Resolve-Path -LiteralPath $candidatePath -ErrorAction Stop).Path
-        $folderPathTextBox.Text = $script:currentFolder
+        $gui_folderPathTextBox.Text = $script:currentFolder
         Save-Settings
         Write-Log "Использована папка с учетными данными: $script:currentFolder"
         Load-CredentialFiles
@@ -630,32 +630,32 @@ function Apply-CredentialsFolder {
     }
 }
 
-$chooseFolderButton.Add_Click({
-    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-    $dialog.Description = 'Выберите папку для хранения файлов учетных данных'
-    $dialog.SelectedPath = $script:currentFolder
-    if ($dialog.ShowDialog($form) -eq [System.Windows.Forms.DialogResult]::OK) {
-        [void](Apply-CredentialsFolder -FolderPath $dialog.SelectedPath)
+$gui_chooseFolderButton.Add_Click({
+    $gui_folderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $gui_folderDialog.Description = 'Выберите папку для хранения файлов учетных данных'
+    $gui_folderDialog.SelectedPath = $script:currentFolder
+    if ($gui_folderDialog.ShowDialog($gui_form) -eq [System.Windows.Forms.DialogResult]::OK) {
+        [void](Apply-CredentialsFolder -FolderPath $gui_folderDialog.SelectedPath)
     }
-    $dialog.Dispose()
+    $gui_folderDialog.Dispose()
 })
 
-$applyFolderButton.Add_Click({
-    [void](Apply-CredentialsFolder -FolderPath $folderPathTextBox.Text)
+$gui_applyFolderButton.Add_Click({
+    [void](Apply-CredentialsFolder -FolderPath $gui_folderPathTextBox.Text)
 })
 
-$folderPathTextBox.Add_KeyDown({
+$gui_folderPathTextBox.Add_KeyDown({
     if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
         $_.SuppressKeyPress = $true
-        [void](Apply-CredentialsFolder -FolderPath $folderPathTextBox.Text)
+        [void](Apply-CredentialsFolder -FolderPath $gui_folderPathTextBox.Text)
     }
 })
 
-$script:credentialsList.Add_KeyDown({
-    if ($_.Control -and $_.KeyCode -eq [System.Windows.Forms.Keys]::C -and $script:credentialsList.SelectedItems.Count -gt 0) {
+$script:gui_credentialsList.Add_KeyDown({
+    if ($_.Control -and $_.KeyCode -eq [System.Windows.Forms.Keys]::C -and $script:gui_credentialsList.SelectedItems.Count -gt 0) {
         $_.SuppressKeyPress = $true
-        $selectedItem = $script:credentialsList.SelectedItems[0]
-        $rowText = "$($selectedItem.Text)`t$($selectedItem.SubItems[1].Text)"
+        $gui_selectedListItem = $script:gui_credentialsList.SelectedItems[0]
+        $rowText = "$($gui_selectedListItem.Text)`t$($gui_selectedListItem.SubItems[1].Text)"
         try {
             [System.Windows.Forms.Clipboard]::SetText($rowText)
         }
@@ -670,18 +670,18 @@ $script:credentialsList.Add_KeyDown({
     }
 })
 
-$script:credentialsList.Add_SelectedIndexChanged({
-    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+$script:gui_credentialsList.Add_SelectedIndexChanged({
+    if ($script:gui_credentialsList.SelectedItems.Count -eq 0) {
         Clear-CredentialDetails
         return
     }
-    $data = $script:credentialsList.SelectedItems[0].Tag
+    $data = $script:gui_credentialsList.SelectedItems[0].Tag
     Show-CredentialDetails -ItemData $data
-    $script:deleteFileButton.Enabled = $true
+    $script:gui_deleteFileButton.Enabled = $true
     Write-Log "Выбран для просмотра файл: $($data.Path)"
 })
 
-$createCredentialButton.Add_Click({
+$gui_createCredentialButton.Add_Click({
     # Параметр -Title появился только в более новых версиях PowerShell.
     # -Message поддерживается Windows PowerShell 5.1.
     $credential = Get-Credential -Message 'Введите учетную запись в формате ДОМЕН\логин или логин@домен.'
@@ -722,11 +722,11 @@ $createCredentialButton.Add_Click({
         Export-Clixml -InputObject $credential -LiteralPath $filePath -Force -ErrorAction Stop
         Write-Log "Создан файл с учетными данными: $filePath"
         Load-CredentialFiles
-        foreach ($item in $script:credentialsList.Items) {
-            if ($item.Tag.Path -eq $filePath) {
-                $item.Selected = $true
-                $item.Focused = $true
-                $item.EnsureVisible()
+        foreach ($gui_item in $script:gui_credentialsList.Items) {
+            if ($gui_item.Tag.Path -eq $filePath) {
+                $gui_item.Selected = $true
+                $gui_item.Focused = $true
+                $gui_item.EnsureVisible()
                 break
             }
         }
@@ -742,11 +742,11 @@ $createCredentialButton.Add_Click({
     }
 })
 
-$script:copyPasswordButton.Add_Click({
-    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+$script:gui_copyPasswordButton.Add_Click({
+    if ($script:gui_credentialsList.SelectedItems.Count -eq 0) {
         return
     }
-    $data = $script:credentialsList.SelectedItems[0].Tag
+    $data = $script:gui_credentialsList.SelectedItems[0].Tag
     if (-not $data.Readable) {
         return
     }
@@ -772,11 +772,11 @@ $script:copyPasswordButton.Add_Click({
     }
 })
 
-$script:changePasswordButton.Add_Click({
-    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+$script:gui_changePasswordButton.Add_Click({
+    if ($script:gui_credentialsList.SelectedItems.Count -eq 0) {
         return
     }
-    $data = $script:credentialsList.SelectedItems[0].Tag
+    $data = $script:gui_credentialsList.SelectedItems[0].Tag
     if (-not $data.Readable) {
         return
     }
@@ -794,11 +794,11 @@ $script:changePasswordButton.Add_Click({
         Export-Clixml -InputObject $updatedCredential -LiteralPath $data.Path -Force -ErrorAction Stop
         Write-Log "Изменен пароль в файле с учетными данными: $($data.Path)"
         Load-CredentialFiles
-        foreach ($item in $script:credentialsList.Items) {
-            if ($item.Tag.Path -eq $data.Path) {
-                $item.Selected = $true
-                $item.Focused = $true
-                $item.EnsureVisible()
+        foreach ($gui_item in $script:gui_credentialsList.Items) {
+            if ($gui_item.Tag.Path -eq $data.Path) {
+                $gui_item.Selected = $true
+                $gui_item.Focused = $true
+                $gui_item.EnsureVisible()
                 break
             }
         }
@@ -826,12 +826,12 @@ $script:changePasswordButton.Add_Click({
     }
 })
 
-$script:deleteFileButton.Add_Click({
-    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+$script:gui_deleteFileButton.Add_Click({
+    if ($script:gui_credentialsList.SelectedItems.Count -eq 0) {
         return
     }
 
-    $data = $script:credentialsList.SelectedItems[0].Tag
+    $data = $script:gui_credentialsList.SelectedItems[0].Tag
     $answer = [System.Windows.Forms.MessageBox]::Show(
         "Удалить файл учетных данных?`r`n`r`n$($data.Path)",
         'Подтверждение удаления',
@@ -861,5 +861,5 @@ $script:deleteFileButton.Add_Click({
 
 Write-Log "Использована папка с учетными данными: $script:currentFolder"
 Load-CredentialFiles
-[void]$form.ShowDialog()
-$form.Dispose()
+[void]$gui_form.ShowDialog()
+$gui_form.Dispose()
