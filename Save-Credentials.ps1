@@ -381,10 +381,13 @@ $rootLayout.Controls.Add($filesGroup, 0, 3)
 
 $detailsGroup = New-Object System.Windows.Forms.GroupBox
 $detailsGroup.Text = 'Выбранные учетные данные (пароль не отображается)'
-$detailsGroup.Dock = [System.Windows.Forms.DockStyle]::Top
+$detailsGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$detailsGroup.AutoSize = $true
+$detailsGroup.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $detailsLayout = New-Object System.Windows.Forms.TableLayoutPanel
-$detailsLayout.Dock = [System.Windows.Forms.DockStyle]::Fill
+$detailsLayout.Dock = [System.Windows.Forms.DockStyle]::Top
 $detailsLayout.AutoSize = $true
+$detailsLayout.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $detailsLayout.ColumnCount = 2
 $detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $detailsLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
