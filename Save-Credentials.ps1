@@ -34,16 +34,12 @@ function Test-IsAdministrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Get-CredentialParts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.Management.Automation.PSCredential]$Credential
-    )
+function Get-CredentialPartsFromUserName {
+    param([Parameter(Mandatory = $true)][string]$UserName)
 
-    $userName = $Credential.UserName.Trim()
-    $networkCredential = $Credential.GetNetworkCredential()
+    $userName = $UserName.Trim()
     $domain = ''
-    $login = $networkCredential.UserName
+    $login = $userName
 
     if ($userName -match '^(?<Domain>[^\\]+)\\(?<Login>.+)$') {
         $domain = $Matches.Domain
@@ -53,14 +49,61 @@ function Get-CredentialParts {
         $domain = $Matches.Domain
         $login = $Matches.Login
     }
-    elseif (-not [String]::IsNullOrWhiteSpace($networkCredential.Domain)) {
-        $domain = $networkCredential.Domain
-    }
-
     return [pscustomobject]@{
         Domain = $domain
         Login  = $login
     }
+}
+
+function Get-CredentialParts {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.PSCredential]$Credential
+    )
+
+    $parts = Get-CredentialPartsFromUserName -UserName $Credential.UserName
+    $networkCredential = $Credential.GetNetworkCredential()
+    if ([String]::IsNullOrWhiteSpace($parts.Domain) -and
+        -not [String]::IsNullOrWhiteSpace($networkCredential.Domain)) {
+        $domain = $networkCredential.Domain
+        return [pscustomobject]@{
+            Domain = $domain
+            Login  = $networkCredential.UserName
+        }
+    }
+
+    return $parts
+}
+
+function Get-CredentialPartsFromClixml {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $settings = New-Object System.Xml.XmlReaderSettings
+    $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+    $settings.XmlResolver = $null
+    $reader = [System.Xml.XmlReader]::Create($Path, $settings)
+    try {
+        $document = New-Object System.Xml.XmlDocument
+        $document.XmlResolver = $null
+        $document.Load($reader)
+    }
+    finally {
+        $reader.Dispose()
+    }
+
+    $credentialType = $document.SelectSingleNode(
+        '//*[local-name()="T" and text()="System.Management.Automation.PSCredential"]'
+    )
+    if ($null -eq $credentialType) {
+        throw 'Содержимое XML не является объектом PSCredential.'
+    }
+
+    $userNameNode = $document.SelectSingleNode('//*[local-name()="S" and @N="UserName"]')
+    if ($null -eq $userNameNode -or [String]::IsNullOrWhiteSpace($userNameNode.InnerText)) {
+        throw 'В XML не найдено поле UserName.'
+    }
+
+    return Get-CredentialPartsFromUserName -UserName $userNameNode.InnerText
 }
 
 function ConvertTo-SafeFileNamePart {
@@ -154,6 +197,8 @@ function Show-CredentialDetails {
 
     if (-not $ItemData.Readable) {
         Clear-CredentialDetails
+        $script:domainValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Domain)) { 'Не найден' } else { $ItemData.Domain }
+        $script:loginValue.Text = if ([String]::IsNullOrWhiteSpace($ItemData.Login)) { 'Не найден' } else { $ItemData.Login }
         $script:fileValue.Text = "$($ItemData.Name) (недоступен для чтения)"
         return
     }
@@ -187,6 +232,12 @@ function Load-CredentialFiles {
             }
             catch {
                 $readError = $_.Exception.Message
+                try {
+                    $parts = Get-CredentialPartsFromClixml -Path $file.FullName
+                }
+                catch {
+                    $parts = $null
+                }
             }
 
             $item = New-Object System.Windows.Forms.ListViewItem($file.Name)
@@ -196,8 +247,8 @@ function Load-CredentialFiles {
                 Path       = $file.FullName
                 Readable   = $readable
                 Credential = $credential
-                Domain     = if ($readable) { $parts.Domain } else { '' }
-                Login      = if ($readable) { $parts.Login } else { '' }
+                Domain     = if ($null -ne $parts) { $parts.Domain } else { '' }
+                Login      = if ($null -ne $parts) { $parts.Login } else { '' }
                 Error      = if ($readable) { '' } else { $readError }
             }
             if (-not $readable) {
