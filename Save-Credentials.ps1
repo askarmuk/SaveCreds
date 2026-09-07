@@ -26,6 +26,7 @@ $script:domainValue = $null
 $script:loginValue = $null
 $script:fileValue = $null
 $script:copyPasswordButton = $null
+$script:changePasswordButton = $null
 $script:deleteFileButton = $null
 
 function Test-IsAdministrator {
@@ -189,6 +190,7 @@ function Clear-CredentialDetails {
     $script:loginValue.Text = '-'
     $script:fileValue.Text = '-'
     $script:copyPasswordButton.Enabled = $false
+    $script:changePasswordButton.Enabled = $false
     $script:deleteFileButton.Enabled = $false
 }
 
@@ -207,6 +209,105 @@ function Show-CredentialDetails {
     $script:loginValue.Text = $ItemData.Login
     $script:fileValue.Text = $ItemData.Name
     $script:copyPasswordButton.Enabled = $true
+    $script:changePasswordButton.Enabled = $true
+}
+
+function Get-ConfirmedNewPassword {
+    param([Parameter(Mandatory = $true)][string]$FileName)
+
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = 'Изменение пароля'
+    $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+    $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $dialog.ClientSize = New-Object Drawing.Size(420, 180)
+    $dialog.MinimizeBox = $false
+    $dialog.MaximizeBox = $false
+    $dialog.ShowInTaskbar = $false
+    $dialog.Font = New-Object Drawing.Font('Segoe UI', 9)
+
+    $description = New-Object System.Windows.Forms.Label
+    $description.Text = "Укажите новый пароль для файла '$FileName'.`r`nДомен и логин изменены не будут."
+    $description.AutoSize = $true
+    $description.Location = New-Object Drawing.Point(12, 12)
+
+    $newPasswordLabel = New-Object System.Windows.Forms.Label
+    $newPasswordLabel.Text = 'Новый пароль:'
+    $newPasswordLabel.AutoSize = $true
+    $newPasswordLabel.Location = New-Object Drawing.Point(12, 62)
+    $newPasswordTextBox = New-Object System.Windows.Forms.TextBox
+    $newPasswordTextBox.Location = New-Object Drawing.Point(145, 58)
+    $newPasswordTextBox.Size = New-Object Drawing.Size(260, 23)
+    $newPasswordTextBox.UseSystemPasswordChar = $true
+
+    $confirmationLabel = New-Object System.Windows.Forms.Label
+    $confirmationLabel.Text = 'Подтверждение:'
+    $confirmationLabel.AutoSize = $true
+    $confirmationLabel.Location = New-Object Drawing.Point(12, 94)
+    $confirmationTextBox = New-Object System.Windows.Forms.TextBox
+    $confirmationTextBox.Location = New-Object Drawing.Point(145, 90)
+    $confirmationTextBox.Size = New-Object Drawing.Size(260, 23)
+    $confirmationTextBox.UseSystemPasswordChar = $true
+
+    $saveButton = New-Object System.Windows.Forms.Button
+    $saveButton.Text = 'Сохранить пароль'
+    $saveButton.Size = New-Object Drawing.Size(130, 28)
+    $saveButton.Location = New-Object Drawing.Point(184, 135)
+    $saveButton.DialogResult = [System.Windows.Forms.DialogResult]::None
+    $cancelButton = New-Object System.Windows.Forms.Button
+    $cancelButton.Text = 'Отмена'
+    $cancelButton.Size = New-Object Drawing.Size(90, 28)
+    $cancelButton.Location = New-Object Drawing.Point(315, 135)
+    $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+
+    [void]$dialog.Controls.Add($description)
+    [void]$dialog.Controls.Add($newPasswordLabel)
+    [void]$dialog.Controls.Add($newPasswordTextBox)
+    [void]$dialog.Controls.Add($confirmationLabel)
+    [void]$dialog.Controls.Add($confirmationTextBox)
+    [void]$dialog.Controls.Add($saveButton)
+    [void]$dialog.Controls.Add($cancelButton)
+    $dialog.AcceptButton = $saveButton
+    $dialog.CancelButton = $cancelButton
+
+    $saveButton.Add_Click({
+        if ([String]::IsNullOrEmpty($newPasswordTextBox.Text)) {
+            [System.Windows.Forms.MessageBox]::Show(
+                'Введите новый пароль.',
+                'Пароль не указан',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning
+            ) | Out-Null
+            $newPasswordTextBox.Focus()
+            return
+        }
+        if ($newPasswordTextBox.Text -cne $confirmationTextBox.Text) {
+            [System.Windows.Forms.MessageBox]::Show(
+                'Пароль и его подтверждение не совпадают.',
+                'Пароли не совпадают',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning
+            ) | Out-Null
+            $confirmationTextBox.Clear()
+            $confirmationTextBox.Focus()
+            return
+        }
+
+        $dialog.Tag = ConvertTo-SecureString -String $newPasswordTextBox.Text -AsPlainText -Force
+        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
+        $dialog.Close()
+    })
+
+    try {
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            return $dialog.Tag
+        }
+        return $null
+    }
+    finally {
+        $newPasswordTextBox.Clear()
+        $confirmationTextBox.Clear()
+        $dialog.Dispose()
+    }
 }
 
 function Load-CredentialFiles {
@@ -406,12 +507,17 @@ $script:copyPasswordButton = New-Object System.Windows.Forms.Button
 $script:copyPasswordButton.Text = 'Скопировать пароль'
 $script:copyPasswordButton.AutoSize = $true
 $script:copyPasswordButton.Enabled = $false
+$script:changePasswordButton = New-Object System.Windows.Forms.Button
+$script:changePasswordButton.Text = 'Изменить пароль'
+$script:changePasswordButton.AutoSize = $true
+$script:changePasswordButton.Enabled = $false
 $script:deleteFileButton = New-Object System.Windows.Forms.Button
 $script:deleteFileButton.Text = 'Удалить выбранный файл'
 $script:deleteFileButton.AutoSize = $true
 $script:deleteFileButton.Enabled = $false
 $buttonsPanel.Controls.Add($createCredentialButton)
 $buttonsPanel.Controls.Add($script:copyPasswordButton)
+$buttonsPanel.Controls.Add($script:changePasswordButton)
 $buttonsPanel.Controls.Add($script:deleteFileButton)
 $rootLayout.Controls.Add($buttonsPanel, 0, 2)
 
@@ -663,6 +769,60 @@ $script:copyPasswordButton.Add_Click({
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
         ) | Out-Null
+    }
+})
+
+$script:changePasswordButton.Add_Click({
+    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+        return
+    }
+    $data = $script:credentialsList.SelectedItems[0].Tag
+    if (-not $data.Readable) {
+        return
+    }
+
+    $newPassword = Get-ConfirmedNewPassword -FileName $data.Name
+    if ($null -eq $newPassword) {
+        return
+    }
+
+    try {
+        $updatedCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList @(
+            $data.Credential.UserName,
+            $newPassword
+        )
+        Export-Clixml -InputObject $updatedCredential -LiteralPath $data.Path -Force -ErrorAction Stop
+        Write-Log "Изменен пароль в файле с учетными данными: $($data.Path)"
+        Load-CredentialFiles
+        foreach ($item in $script:credentialsList.Items) {
+            if ($item.Tag.Path -eq $data.Path) {
+                $item.Selected = $true
+                $item.Focused = $true
+                $item.EnsureVisible()
+                break
+            }
+        }
+        [System.Windows.Forms.MessageBox]::Show(
+            'Пароль успешно изменен.',
+            'Готово',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+    }
+    catch {
+        Write-Log "Не удалось изменить пароль в файле '$($data.Path)': $($_.Exception.Message)"
+        [System.Windows.Forms.MessageBox]::Show(
+            "Не удалось изменить пароль:`r`n$($_.Exception.Message)",
+            'Ошибка изменения пароля',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+    }
+    finally {
+        $updatedCredential = $null
+        if ($null -ne $newPassword) {
+            $newPassword.Dispose()
+        }
     }
 })
 
