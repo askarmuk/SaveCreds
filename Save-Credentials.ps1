@@ -27,6 +27,8 @@ $script:loginValue = $null
 $script:fileValue = $null
 $script:copyPasswordButton = $null
 $script:deleteFileButton = $null
+$script:copyFileButton = $null
+$script:copyDetailsButton = $null
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -141,12 +143,33 @@ function Write-Log {
     }
 }
 
+function Copy-InterfaceText {
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$ItemName
+    )
+
+    try {
+        [System.Windows.Forms.Clipboard]::SetText($Text)
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Не удалось скопировать ${ItemName}:`r`n$($_.Exception.Message)",
+            'Ошибка буфера обмена',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+    }
+}
+
 function Clear-CredentialDetails {
     $script:domainValue.Text = '-'
     $script:loginValue.Text = '-'
     $script:fileValue.Text = '-'
     $script:copyPasswordButton.Enabled = $false
     $script:deleteFileButton.Enabled = $false
+    $script:copyFileButton.Enabled = $false
+    $script:copyDetailsButton.Enabled = $false
 }
 
 function Show-CredentialDetails {
@@ -162,6 +185,7 @@ function Show-CredentialDetails {
     $script:loginValue.Text = $ItemData.Login
     $script:fileValue.Text = $ItemData.Name
     $script:copyPasswordButton.Enabled = $true
+    $script:copyDetailsButton.Enabled = $true
 }
 
 function Load-CredentialFiles {
@@ -312,6 +336,19 @@ foreach ($infoRow in $infoRows) {
     $infoLayout.Controls.Add($caption)
     $infoLayout.Controls.Add($value)
 }
+$copySessionInfoButton = New-Object System.Windows.Forms.Button
+$copySessionInfoButton.Text = 'Копировать сведения'
+$copySessionInfoButton.AutoSize = $true
+$copySessionInfoButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
+$infoLayout.Controls.Add($copySessionInfoButton, 1, $infoRows.Count)
+$copySessionInfoButton.Add_Click({
+    $sessionText = @(
+        "Имя компьютера: $env:COMPUTERNAME",
+        "Учетная запись Windows: $currentIdentity",
+        "Запуск от имени администратора: $isAdministratorText"
+    ) -join [Environment]::NewLine
+    Copy-InterfaceText -Text $sessionText -ItemName 'сведения о текущем сеансе'
+})
 $infoGroup.Controls.Add($infoLayout)
 $rootLayout.Controls.Add($infoGroup, 0, 0)
 
@@ -366,6 +403,21 @@ $rootLayout.Controls.Add($buttonsPanel, 0, 2)
 $filesGroup = New-Object System.Windows.Forms.GroupBox
 $filesGroup.Text = 'Файлы XML'
 $filesGroup.Dock = [System.Windows.Forms.DockStyle]::Fill
+$filesLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$filesLayout.Dock = [System.Windows.Forms.DockStyle]::Fill
+$filesLayout.ColumnCount = 1
+$filesLayout.RowCount = 2
+$filesLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$filesLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$filesActionsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$filesActionsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+$filesActionsPanel.AutoSize = $true
+$filesActionsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
+$script:copyFileButton = New-Object System.Windows.Forms.Button
+$script:copyFileButton.Text = 'Копировать выбранный файл'
+$script:copyFileButton.AutoSize = $true
+$script:copyFileButton.Enabled = $false
+$filesActionsPanel.Controls.Add($script:copyFileButton)
 $script:credentialsList = New-Object System.Windows.Forms.ListView
 $script:credentialsList.Dock = [System.Windows.Forms.DockStyle]::Fill
 $script:credentialsList.View = [System.Windows.Forms.View]::Details
@@ -375,7 +427,9 @@ $script:credentialsList.MultiSelect = $false
 $script:credentialsList.ShowItemToolTips = $true
 [void]$script:credentialsList.Columns.Add('Имя файла', 590)
 [void]$script:credentialsList.Columns.Add('Состояние', 150)
-$filesGroup.Controls.Add($script:credentialsList)
+$filesLayout.Controls.Add($filesActionsPanel, 0, 0)
+$filesLayout.Controls.Add($script:credentialsList, 0, 1)
+$filesGroup.Controls.Add($filesLayout)
 $rootLayout.Controls.Add($filesGroup, 0, 3)
 
 $detailsGroup = New-Object System.Windows.Forms.GroupBox
@@ -410,6 +464,12 @@ foreach ($property in @(
     $detailsLayout.Controls.Add($caption)
     $detailsLayout.Controls.Add($value)
 }
+$script:copyDetailsButton = New-Object System.Windows.Forms.Button
+$script:copyDetailsButton.Text = 'Копировать сведения'
+$script:copyDetailsButton.AutoSize = $true
+$script:copyDetailsButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
+$script:copyDetailsButton.Enabled = $false
+$detailsLayout.Controls.Add($script:copyDetailsButton, 1, 3)
 $detailsGroup.Controls.Add($detailsLayout)
 $rootLayout.Controls.Add($detailsGroup, 0, 4)
 
@@ -490,6 +550,39 @@ $folderPathTextBox.Add_KeyDown({
     }
 })
 
+$script:copyFileButton.Add_Click({
+    if ($script:credentialsList.SelectedItems.Count -eq 0) {
+        return
+    }
+
+    $selectedItem = $script:credentialsList.SelectedItems[0]
+    $fileText = @(
+        "Имя файла: $($selectedItem.Text)",
+        "Состояние: $($selectedItem.SubItems[1].Text)"
+    ) -join [Environment]::NewLine
+    Copy-InterfaceText -Text $fileText -ItemName 'данные выбранного XML-файла'
+})
+
+$script:credentialsList.Add_KeyDown({
+    if ($_.Control -and $_.KeyCode -eq [System.Windows.Forms.Keys]::C -and $script:copyFileButton.Enabled) {
+        $_.SuppressKeyPress = $true
+        $script:copyFileButton.PerformClick()
+    }
+})
+
+$script:copyDetailsButton.Add_Click({
+    if ($script:credentialsList.SelectedItems.Count -eq 0 -or -not $script:copyDetailsButton.Enabled) {
+        return
+    }
+
+    $detailsText = @(
+        "Домен: $($script:domainValue.Text)",
+        "Логин: $($script:loginValue.Text)",
+        "Файл: $($script:fileValue.Text)"
+    ) -join [Environment]::NewLine
+    Copy-InterfaceText -Text $detailsText -ItemName 'выбранные учетные данные'
+})
+
 $script:credentialsList.Add_SelectedIndexChanged({
     if ($script:credentialsList.SelectedItems.Count -eq 0) {
         Clear-CredentialDetails
@@ -498,6 +591,7 @@ $script:credentialsList.Add_SelectedIndexChanged({
     $data = $script:credentialsList.SelectedItems[0].Tag
     Show-CredentialDetails -ItemData $data
     $script:deleteFileButton.Enabled = $true
+    $script:copyFileButton.Enabled = $true
     Write-Log "Выбран для просмотра файл: $($data.Path)"
 })
 
